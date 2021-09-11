@@ -15,12 +15,14 @@
   },
   "dependencies": {
     "axios": "^0.21.4",
-    "axios-cookiejar-support": "^1.0.1"
+    "axios-cookiejar-support": "^1.0.1",
+    "query-string": "^7.0.1"
   },
   "devDependencies": {
     "@babel/preset-typescript": "^7.15.0",
     "@types/aws-lambda": "^8.10.83",
     "@types/node": "^16.9.1",
+    "@types/query-string": "^6.3.0",
     "dotenv-webpack": "^7.0.3",
     "netlify-lambda": "^2.0.14",
     "tslint-config-prettier": "^1.18.0",
