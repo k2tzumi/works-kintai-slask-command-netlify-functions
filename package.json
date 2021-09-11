@@ -1,0 +1,30 @@
+{
+  "name": "works-kintai-slask-command-netlify-functions",
+  "version": "0.0.1",
+  "main": "index.js",
+  "repository": "https://github.com/k2tzumi/works-kintai-slask-command-netlify-functions",
+  "author": "k2tzumi",
+  "license": "MIT",
+  "scripts": {
+    "build": "netlify-lambda build src/",
+    "serve": "netlify-lambda serve src/ --config ./webpack.functions.js",
+    "lint": "tslint --fix src/**/*.ts"
+  },
+  "engines": {
+    "node": "^12.9.0"
+  },
+  "dependencies": {
+    "axios": "^0.21.4",
+    "axios-cookiejar-support": "^1.0.1"
+  },
+  "devDependencies": {
+    "@babel/preset-typescript": "^7.15.0",
+    "@types/aws-lambda": "^8.10.83",
+    "@types/node": "^16.9.1",
+    "dotenv-webpack": "^7.0.3",
+    "netlify-lambda": "^2.0.14",
+    "tslint-config-prettier": "^1.18.0",
+    "tslint-plugin-prettier": "^2.3.0",
+    "typescript": "^4.4.3"
+  }
+}
