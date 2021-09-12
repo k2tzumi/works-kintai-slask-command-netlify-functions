@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosResponse } from "axios";
 import axiosCookiejarSupport from "axios-cookiejar-support";
-import queryString from "query-string";
+import * as queryString from "query-string";
 
 axiosCookiejarSupport(axios);
 
@@ -14,6 +14,10 @@ axiosCookiejarSupport(axios);
 //   return response;
 // });
 
+const PUNCHIN = "　　　出勤　　　";
+const PUNCHIOUT = "　　　退勤　　　";
+type Submit = typeof PUNCHIN | typeof PUNCHIOUT;
+
 class WorksClient {
 
     private client: AxiosInstance;
@@ -25,29 +29,79 @@ class WorksClient {
         });
      }
 
-     public doLogin(username: string, password: string) {
-         return new Promise<{ [key: string]: string }>((resolve, reject) => {
-             this.authnRequest().then((formData) => {
-                 formData.username = username;
-                 return this.inputUserName(formData);
-             })
-            .then((formData) => {
-                formData.password = password;
-                return this.inputPassword(formData);
+    public doLogin(username: string, password: string): Promise<WorksClient> {
+        return new Promise<WorksClient>((resolve, reject) => {
+            this.authnRequest().then((formData) => {
+                formData.username = username;
+                return this.inputUserName(formData);
             })
-            .then((formData) => {
-                return this.redirectWithSAMLart(formData);
-            })
-            .then((formData) => {
-                // resolve(formData);
-                return this.inputTimeRec();
-            }).then((formData) => {
-                resolve(formData);
+                .then((formData) => {
+                    formData.password = password;
+                    return this.inputPassword(formData);
+                })
+                .then((formData) => {
+                    return this.redirectWithSAMLart(formData);
+                })
+                .then((formData) => {
+                    resolve(this);
+                }).catch((error) => {
+                    reject(error);
+                });
+        });
+    }
+
+    public doPunchIn(date?: string): Promise<string> {
+        return new Promise<string>((resolve, reject) => {
+            this.inputTimeRec().then((formData) => {
+                return this.punch(formData, PUNCHIN, date);
+            }).then((message) => {
+                resolve(message);
             }).catch((error) => {
                 reject(error);
             });
-         });
-     }
+        });
+    }
+
+    public doPunchOut(date?: string): Promise<string> {
+        return new Promise<string>((resolve, reject) => {
+            this.inputTimeRec().then((formData) => {
+                return this.punch(formData, PUNCHIOUT, date);
+            }).then((message) => {
+                resolve(message);
+            }).catch((error) => {
+                reject(error);
+            });
+        });
+    }
+
+    private punch(formData: { [key: string]: string }, submit: Submit, date?: string): Promise<string> {
+        return new Promise<string>((resolve, reject) => {
+            formData.submit = submit;
+            if (date) {
+                formData["ki-date"] = date;
+            }
+
+            this.client
+                .post<string>(
+                    this.postTimeRecEndPoint,
+                    queryString.stringify(formData),
+                    { headers: this.headers }
+                )
+                .then((response) => {
+                    this.loggingResponse(response);
+                    const message = this.collectInfoMessage(response.data);
+
+                    if (message) {
+                        resolve(message);
+                    } else {
+                        reject("unkonw response.");
+                    }
+                })
+                .catch((error) => {
+                    reject(error);
+                });
+        });
+    }
 
     private authnRequest(): Promise<{ [key: string]: string }> {
         return new Promise<{ [key: string]: string }>((resolve, reject) => {
@@ -58,7 +112,6 @@ class WorksClient {
                 )
                 .then((response) => {
                     this.loggingResponse(response);
-                    console.log(response.config.url);
                     resolve(this.collectHiddenValues(response.data));
                 })
                 .catch((error) => {
@@ -158,6 +211,10 @@ class WorksClient {
         return `https://${this.domain}/self-workflow/cws/mbl/MblActInputTimeRec`;
     }
 
+    private get postTimeRecEndPoint(): string {
+        return `${this.timeRecEndPoint}}@act=submit`;
+    }
+
     private get headers() {
         return {
             "User-Agent":
@@ -197,10 +254,22 @@ class WorksClient {
         }
     }
 
+    private collectInfoMessage(data: string): string | null {
+        const messageMatcher =
+            /<div align=\"left\" ID=\"InfoMsg\" style=\"color:#006400;\" >(.*?)<\/div>/ig;
+        const message = data.match(messageMatcher);
+
+        if (message) {
+            return message[0].match(/ >(.*?)<\/div>/)[1].replace("<br>", "\n");
+        } else {
+            return null;
+        }
+    }
+
     private loggingResponse(response: AxiosResponse<string>): void {
         console.log(`url: ${response.config.url}, status: ${response.status}`);
         // console.log(`Location: ${response.headers.Location}`);
-        // console.log(response.data);
+        console.log(response.data);
     }
 }
 
