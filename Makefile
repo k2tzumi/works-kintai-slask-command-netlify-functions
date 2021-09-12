@@ -6,6 +6,7 @@ help:
 
 .netlify:
 	netlify init
+	netlify link
 
 node_modules:
 	npm ci
@@ -16,9 +17,14 @@ login:
 	netligy login
 
 .PHONY: deploy
-deploy: ## Deploy Netlify
+deploy: ## Deploy to draft
 deploy: .netlify
 	netlify deploy
+
+.PHONY: publish
+publish: ## Deploy to production
+publish: .netlify
+	netlify deploy --prod
 
 .PHONY: open
 open: ## Open netlify
