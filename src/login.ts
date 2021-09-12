@@ -3,7 +3,17 @@ import { WorksClient } from "./worksClient";
 
 export async function handler(event: APIGatewayProxyEvent, context: Context) {
   const client = new WorksClient(process.env.HUE_DOMAIN, process.env.HUE_AUTH_DOMAIN);
-  const postJson = JSON.parse(event.body);
+  const postJson = event.body ? JSON.parse(event.body) : null;
+
+  if (!postJson) {
+    return {
+      statusCode: 400,
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ ok: false, error: "bad request." }),
+    };
+  }
 
   try {
     await client.doLogin(postJson.username, postJson.password);
