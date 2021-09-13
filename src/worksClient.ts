@@ -29,31 +29,41 @@ class WorksClient {
         });
      }
 
-    public doLogin(username: string, password: string): Promise<WorksClient> {
-        return new Promise<WorksClient>((resolve, reject) => {
+    public doPreLogin(username: string, password: string): Promise<{ [key: string]: string }> {
+        return new Promise<{ [key: string]: string }>((resolve, reject) => {
             this.authnRequest().then((formData) => {
                 formData.username = username;
                 return this.inputUserName(formData);
             })
-                .then((formData) => {
-                    formData.password = password;
-                    return this.inputPassword(formData);
-                })
-                .then((formData) => {
-                    return this.redirectWithSAMLart(formData);
-                })
-                .then((formData) => {
-                    resolve(this);
-                }).catch((error) => {
-                    reject(error);
-                });
+            .then((formData) => {
+                formData.password = password;
+                return this.inputPassword(formData);
+            })
+            .then((formData) => {
+                resolve(formData);
+            }).catch((error) => {
+                reject(error);
+            });
         });
     }
 
-    public doPunchIn(date?: string): Promise<string> {
+    private doLogin(username: string, password: string): Promise<[string, { [key: string]: string }]> {
+        return new Promise<[string, { [key: string]: string }]>((resolve, reject) => {
+            this.doPreLogin(username, password).then((formData) => {
+                return this.redirectWithSAMLart(formData);
+            }).then((form) => {
+                resolve(form);
+            }).catch((error) => {
+                reject(error);
+            });
+        });
+    }
+
+    public doPunchIn(username: string, password: string, date?: string): Promise<string> {
         return new Promise<string>((resolve, reject) => {
-            this.inputTimeRec().then((formData) => {
-                return this.punch(formData, PUNCHIN, date);
+            this.doLogin(username, password).then((form) => {
+                const [action, formData] = form;
+                return this.punch(action, formData, PUNCHIN, date);
             }).then((message) => {
                 resolve(message);
             }).catch((error) => {
@@ -62,10 +72,11 @@ class WorksClient {
         });
     }
 
-    public doPunchOut(date?: string): Promise<string> {
+    public doPunchOut(username: string, password: string, date?: string): Promise<string> {
         return new Promise<string>((resolve, reject) => {
-            this.inputTimeRec().then((formData) => {
-                return this.punch(formData, PUNCHIOUT, date);
+            this.doLogin(username, password).then((form) => {
+                const [ action, formData ] = form;
+                return this.punch(action, formData, PUNCHIOUT, date);
             }).then((message) => {
                 resolve(message);
             }).catch((error) => {
@@ -74,7 +85,7 @@ class WorksClient {
         });
     }
 
-    private punch(formData: { [key: string]: string }, submit: Submit, date?: string): Promise<string> {
+    private punch(action: string, formData: { [key: string]: string }, submit: Submit, date?: string): Promise<string> {
         return new Promise<string>((resolve, reject) => {
             formData.submit = submit;
             if (date) {
@@ -83,18 +94,18 @@ class WorksClient {
 
             this.client
                 .post<string>(
-                    this.postTimeRecEndPoint,
+                    `${this.postTimeRecBaseURL}${action}`,
                     queryString.stringify(formData),
                     { headers: this.headers }
                 )
                 .then((response) => {
-                    this.loggingResponse(response);
                     const message = this.collectInfoMessage(response.data);
 
                     if (message) {
                         resolve(message);
                     } else {
-                        reject("unkonw response.");
+                        this.loggingResponse(response);
+                        reject("Unkonw response.");
                     }
                 })
                 .catch((error) => {
@@ -107,11 +118,10 @@ class WorksClient {
         return new Promise<{ [key: string]: string }>((resolve, reject) => {
             this.client
                 .get<string>(
-                    this.loginEndPoint,
+                    this.timeRecEndPoint,
                     { headers: this.headers }
                 )
                 .then((response) => {
-                    this.loggingResponse(response);
                     resolve(this.collectHiddenValues(response.data));
                 })
                 .catch((error) => {
@@ -121,7 +131,7 @@ class WorksClient {
     }
 
     private inputUserName(formData: { [key: string]: string }): Promise<{ [key: string]: string }> {
-        return new Promise<{ [key: string]: string }>((resolve, rejects) => {
+        return new Promise<{ [key: string]: string }>((resolve, reject) => {
             this.client
                 .post<string>(
                     this.samlLoginEndpoint,
@@ -129,21 +139,20 @@ class WorksClient {
                     { headers: this.headers }
                 )
                 .then((response) => {
-                    this.loggingResponse(response);
                     const error = this.collectFormError(response.data);
                     if (error) {
-                        rejects(error);
+                        reject(error);
                     }
                     resolve(this.collectHiddenValues(response.data));
                 })
                 .catch((error) => {
-                    rejects(error);
+                    reject(error);
                 });
         });
     }
     
     private inputPassword(formData: { [key: string]: string }): Promise<{ [key: string]: string }> {
-        return new Promise<{ [key: string]: string }>((resolve, rejects) => {
+        return new Promise<{ [key: string]: string }>((resolve, reject) => {
             this.client
                 .post<string>(
                     this.samlLoginEndpoint,
@@ -151,56 +160,48 @@ class WorksClient {
                     { headers: this.headers }
                 )
                 .then((response) => {
-                    this.loggingResponse(response);
                     const error = this.collectFormError(response.data);
                     if (error) {
-                        rejects(error);
+                        reject(error);
+                    } else {
+                        const fromData = this.collectHiddenValues(response.data);
+                        if (fromData.SAMLResponse) {
+                            resolve(fromData);
+                        } else {
+                            this.loggingResponse(response);
+                            reject("Login faild.");
+                        }
                     }
-                    resolve(this.collectHiddenValues(response.data));
                 })
                 .catch((error) => {
-                    rejects(error);
+                    reject(error);
                 });
         });
     }
 
-    private redirectWithSAMLart(formData: { [key: string]: string }): Promise<{ [key: string]: string }> {
-        return new Promise<{ [key: string]: string }>((resolve, rejects) => {
+    private redirectWithSAMLart(formData: { [key: string]: string }): Promise<[string, { [key: string]: string }]> {
+        return new Promise<[string, { [key: string]: string }]>((resolve, reject) => {
             this.client
                 .post<string>(
-                    this.loginEndPoint,
+                    this.timeRecEndPoint,
                     queryString.stringify(formData),
                     { headers: this.headers }
                 )
                 .then((response) => {
-                    this.loggingResponse(response);
-                    resolve(this.collectHiddenValues(response.data));
+                    const action = this.collecFormAction(response.data);
+                    const formData = this.collectHiddenValues(response.data);
+
+                    if (!action || Object.keys(formData).length === 0) {
+                        this.loggingResponse(response);
+                        reject("HTML parse error.");
+                    } else {
+                        resolve([action, formData]);
+                    }
                 })
                 .catch((error) => {
-                    rejects(error);
+                    reject(error);
                 });
         });
-    }
-
-    private inputTimeRec(): Promise<{ [key: string]: string }> {
-        return new Promise<{ [key: string]: string }>((resolve, rejects) => {
-            this.client
-                .get<string>(
-                    this.timeRecEndPoint,
-                    { headers: this.headers }
-                )
-                .then((response) => {
-                    this.loggingResponse(response);
-                    resolve(this.collectHiddenValues(response.data));
-                })
-                .catch((error) => {
-                    rejects(error);
-                });
-        });
-    }
-
-    private get loginEndPoint(): string {
-        return `https://${this.domain}/self-workflow/cws/mbl/MblActLogin?@REDIRECT=&@REDIRECT=&@JUMP=`;
     }
 
     private get samlLoginEndpoint(): string {
@@ -211,8 +212,8 @@ class WorksClient {
         return `https://${this.domain}/self-workflow/cws/mbl/MblActInputTimeRec`;
     }
 
-    private get postTimeRecEndPoint(): string {
-        return `${this.timeRecEndPoint}}@act=submit`;
+    private get postTimeRecBaseURL(): string {
+        return `https://${this.domain}/self-workflow/cws/mbl/`;
     }
 
     private get headers() {
@@ -256,7 +257,7 @@ class WorksClient {
 
     private collectInfoMessage(data: string): string | null {
         const messageMatcher =
-            /<div align=\"left\" ID=\"InfoMsg\" style=\"color:#006400;\" >(.*?)<\/div>/ig;
+            /<div class=\"alert alert\-success\" >(.*?)<\/div>/ig;
         const message = data.match(messageMatcher);
 
         if (message) {
@@ -266,9 +267,21 @@ class WorksClient {
         }
     }
 
+    private collecFormAction(data: string): string | null {
+        const formMatcher =
+            /<form action=\"(.*?)\" method=\"post\"/i;
+        const form = data.match(formMatcher);
+        const hiddenValues: { [key: string]: string } = {};
+
+        if (!form) {
+            return null;
+        } else {
+            return form[1];
+        }
+    }
+
     private loggingResponse(response: AxiosResponse<string>): void {
         console.log(`url: ${response.config.url}, status: ${response.status}`);
-        // console.log(`Location: ${response.headers.Location}`);
         console.log(response.data);
     }
 }

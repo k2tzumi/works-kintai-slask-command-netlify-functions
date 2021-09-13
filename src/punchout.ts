@@ -18,7 +18,7 @@ export async function handler(event: APIGatewayProxyEvent, context: Context) {
   }
 
   try {
-    const message = await (await client.doLogin(postJson.username, postJson.password)).doPunchOut(postJson.date);
+    const message = await client.doPunchOut(postJson.username, postJson.password, postJson.date);
 
     return {
       statusCode: 200,

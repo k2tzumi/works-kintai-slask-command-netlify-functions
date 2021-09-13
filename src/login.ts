@@ -4,8 +4,6 @@ import { WorksClient } from "./worksClient";
 export async function handler(event: APIGatewayProxyEvent, context: Context) {
   const client = new WorksClient(process.env.HUE_DOMAIN, process.env.HUE_AUTH_DOMAIN);
 
-  console.log(`event: ${event.body}`);
-
   let postJson;
 
   try {
@@ -21,7 +19,7 @@ export async function handler(event: APIGatewayProxyEvent, context: Context) {
   }
 
   try {
-    await client.doLogin(postJson.username, postJson.password);
+    await client.doPreLogin(postJson.username, postJson.password);
 
     return {
       statusCode: 200,
