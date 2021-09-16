@@ -1,5 +1,5 @@
 import { APIGatewayProxyEvent, Context } from "aws-lambda";
-import { WorksClient } from "./worksClient";
+import { AuthenticationError, WorksClient, WorksClientError } from "./worksClient";
 
 export async function handler(event: APIGatewayProxyEvent, context: Context) {
   const client = new WorksClient(process.env.HUE_DOMAIN, process.env.HUE_AUTH_DOMAIN);
@@ -28,12 +28,21 @@ export async function handler(event: APIGatewayProxyEvent, context: Context) {
       body: JSON.stringify({ ok: true, result: message }),
     }
   } catch (error) {
+    let statusCode: number;
+    switch (true) {
+      case error instanceof WorksClientError:
+        statusCode = 400;
+      case error instanceof AuthenticationError:
+        statusCode = 401;
+      default:
+        statusCode = 500;
+    }
     return {
-      statusCode: 500,
+      statusCode,
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ ok: false, error }),
+      body: JSON.stringify({ ok: false, error: error.message }),
     }
   }
 };

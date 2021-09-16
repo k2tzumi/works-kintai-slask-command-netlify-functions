@@ -18,6 +18,21 @@ const PUNCHIN = "　　　出勤　　　";
 const PUNCHIOUT = "　　　退勤　　　";
 type Submit = typeof PUNCHIN | typeof PUNCHIOUT;
 
+abstract class BaseError extends Error {
+    constructor(m: string) {
+        super(m);
+        Object.setPrototypeOf(this, new.target.prototype);
+    }
+}
+
+class AuthenticationError extends BaseError {
+    constructor(m: string) { super(m); }
+}
+
+class WorksClientError extends Error {
+    constructor(m: string) { super(m); }
+}
+
 class WorksClient {
 
     private client: AxiosInstance;
@@ -141,7 +156,7 @@ class WorksClient {
                 .then((response) => {
                     const error = this.collectFormError(response.data);
                     if (error) {
-                        reject(error);
+                        reject(new WorksClientError(error));
                     }
                     resolve(this.collectHiddenValues(response.data));
                 })
@@ -162,14 +177,14 @@ class WorksClient {
                 .then((response) => {
                     const error = this.collectFormError(response.data);
                     if (error) {
-                        reject(error);
+                        reject(new AuthenticationError(error));
                     } else {
                         const fromData = this.collectHiddenValues(response.data);
                         if (fromData.SAMLResponse) {
                             resolve(fromData);
                         } else {
                             this.loggingResponse(response);
-                            reject("Login faild.");
+                            reject(new AuthenticationError("Login faild."));
                         }
                     }
                 })
@@ -193,7 +208,7 @@ class WorksClient {
 
                     if (!action || Object.keys(formData).length === 0) {
                         this.loggingResponse(response);
-                        reject("HTML parse error.");
+                        reject(new WorksClientError("HTML parse error."));
                     } else {
                         resolve([action, formData]);
                     }
@@ -286,4 +301,4 @@ class WorksClient {
     }
 }
 
-export { WorksClient };
+export { WorksClient, AuthenticationError, WorksClientError };
