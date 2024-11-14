@@ -50,3 +50,9 @@ build:
 serve: ## Run Server
 serve:
 	npm run serve
+
+.PHONY: upgrade
+upgrade: ## Upgrades package.json
+upgrade:
+	npx -p npm-check-updates  -c "ncu -u"
+	npm update
