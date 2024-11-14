@@ -149,7 +149,7 @@ class WorksClient {
         return new Promise<{ [key: string]: string }>((resolve, reject) => {
             this.client
                 .post<string>(
-                    this.samlLoginEndpoint,
+                    this.loginEndpoint,
                     queryString.stringify(formData),
                     { headers: this.headers }
                 )
@@ -170,7 +170,7 @@ class WorksClient {
         return new Promise<{ [key: string]: string }>((resolve, reject) => {
             this.client
                 .post<string>(
-                    this.samlLoginEndpoint,
+                    this.loginEndpoint,
                     queryString.stringify(formData),
                     { headers: this.headers }
                 )
@@ -219,8 +219,8 @@ class WorksClient {
         });
     }
 
-    private get samlLoginEndpoint(): string {
-        return `https://${process.env.HUE_AUTH_DOMAIN}/saml/login`;
+    private get loginEndpoint(): string {
+        return `https://${process.env.HUE_AUTH_DOMAIN}/login`;
     }
 
     private get timeRecEndPoint(): string {
