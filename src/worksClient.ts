@@ -57,6 +57,12 @@ class WorksClient {
             .then((formData) => {
                 resolve(formData);
             }).catch((error) => {
+                if (error instanceof Error) {
+                    console.error("doPreLogin error message:", error.message);
+                    console.error("stack trace:", error.stack);
+                  } else { 
+                    console.error("unknown error:", error);
+                  }              
                 reject(error);
             });
         });
@@ -69,7 +75,13 @@ class WorksClient {
             }).then((form) => {
                 resolve(form);
             }).catch((error) => {
-                reject(error);
+                if (error instanceof Error) {
+                    console.error("doLogin error message:", error.message);
+                    console.error("stack trace:", error.stack);
+                  } else { 
+                    console.error("unknown error:", error);
+                  }
+                  reject(error);
             });
         });
     }
@@ -133,13 +145,22 @@ class WorksClient {
         return new Promise<{ [key: string]: string }>((resolve, reject) => {
             this.client
                 .get<string>(
-                    this.timeRecEndPoint,
+                    this.postTimeRecBaseURL,
                     { headers: this.headers }
                 )
                 .then((response) => {
-                    resolve(this.collectHiddenValues(response.data));
+                    const hiddenValue = this.collectHiddenValues(response.data);
+                    console.info("hiddenValue:", hiddenValue);
+                    resolve(hiddenValue);
                 })
                 .catch((error) => {
+                    if (error instanceof Error) {
+                        console.error("authnRequest error message:", error.message);
+                        console.error("stack trace:", error.stack);
+                      } else { 
+                        console.error("unknown error:", error);
+                      }
+
                     reject(error);
                 });
         });
@@ -161,6 +182,13 @@ class WorksClient {
                     resolve(this.collectHiddenValues(response.data));
                 })
                 .catch((error) => {
+                    if (error instanceof Error) {
+                        console.error("inputUserName error message:", error.message);
+                        console.error("stack trace:", error.stack);
+                    } else { 
+                        console.error("unknown error:", error);
+                    }
+
                     reject(error);
                 });
         });
@@ -189,6 +217,13 @@ class WorksClient {
                     }
                 })
                 .catch((error) => {
+                    if (error instanceof Error) {
+                        console.error("inputPassword error message:", error.message);
+                        console.error("stack trace:", error.stack);
+                    } else { 
+                        console.error("unknown error:", error);
+                    }
+
                     reject(error);
                 });
         });
@@ -214,6 +249,13 @@ class WorksClient {
                     }
                 })
                 .catch((error) => {
+                    if (error instanceof Error) {
+                        console.error("redirectWithSAMLart error message:", error.message);
+                        console.error("stack trace:", error.stack);
+                    } else { 
+                        console.error("unknown error:", error);
+                    }
+
                     reject(error);
                 });
         });
@@ -246,13 +288,29 @@ class WorksClient {
         const hiddenValues: { [key: string]: string } = {};
 
         if (!hiddens) {
-            return {};
+            return this.collectSecondHiddenValues(data);
         }
 
         for (const hidden of hiddens) {
             const name = hidden.match(/name=\"(.*?)\"/i)[1];
             const value = hidden.match(/value=\"(.*?)\"/i)[1];
             hiddenValues[name] = value;
+        }
+
+        return hiddenValues;
+    }
+
+    private collectSecondHiddenValues(data: string): { [key: string]: string } {
+        const hiddenMatcher =
+            /(<input\s+type="hidden"\s+name="(?<hiddenName>[^"]+)"\s*\/>)/ig;
+        const matches = data.match(hiddenMatcher) || [];
+        const hiddenValues: { [key: string]: string } = {};
+
+        for (const match of matches) {
+            const nameMatch = match.match(/name="([^"]+)"/);
+            if (nameMatch && nameMatch[1]) {
+                hiddenValues[nameMatch[1]] = '';
+            }    
         }
 
         return hiddenValues;
