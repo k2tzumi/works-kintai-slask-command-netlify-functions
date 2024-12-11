@@ -6,9 +6,10 @@
   "author": "k2tzumi",
   "license": "MIT",
   "scripts": {
-    "build": "netlify-lambda build src/",
-    "serve": "netlify-lambda serve src/ --config ./webpack.functions.js",
-    "lint": "tslint --fix src/**/*.ts"
+    "build": "webpack --config ./webpack.config.js",
+    "start": "netlify dev",
+    "lint": "tslint --fix src/**/*.ts",
+    "clean": "rm -rf .netlify .functions"
   },
   "engines": {
     "node": ">=14.0.0"
@@ -20,15 +21,19 @@
     "tough-cookie": "^4.0.0"
   },
   "devDependencies": {
+    "@babel/preset-env": "^7.18.9",
     "@babel/preset-typescript": "^7.15.0",
     "@types/aws-lambda": "^8.10.83",
-    "@types/node": "^16.9.1",
+    "@types/node": "^20.0.0",
     "@types/query-string": "^6.3.0",
+    "babel-loader": "^8.2.5",
     "dotenv-webpack": "^7.0.3",
-    "netlify-lambda": "^2.0.16",
+    "netlify-cli": "^10.14.0",
+    "tslint": "^6.1.3",
     "tslint-config-prettier": "^1.18.0",
     "tslint-plugin-prettier": "^2.3.0",
     "typescript": "^4.4.3",
-    "tslint": "^6.1.3"
+    "webpack": "^4.46.0",
+    "webpack-cli": "^4.10.0"
   }
 }
