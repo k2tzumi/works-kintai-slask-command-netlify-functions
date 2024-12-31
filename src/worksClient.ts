@@ -1,8 +1,9 @@
 import axios, { AxiosInstance, AxiosResponse } from "axios";
-import axiosCookiejarSupport from "axios-cookiejar-support";
-import * as queryString from "query-string";
+import * as jsdom from 'jsdom';
+import fetch from 'node-fetch';
+import queryString from 'query-string';
 
-axiosCookiejarSupport(axios);
+// axiosCookiejarSupport(axios);
 
 // axios.interceptors.request.use(request => {
 //   console.log('Starting Request: ', request);
@@ -38,10 +39,10 @@ class WorksClient {
     private client: AxiosInstance;
 
     public constructor(private domain: string, private authDomain: string) {
-        this.client = axios.create({
-            jar: true,
-            withCredentials: true,
-        });
+        // this.client = axios.create({
+        //     jar: true,
+        //     withCredentials: true,
+        // });
      }
 
     public doPreLogin(username: string, password: string): Promise<{ [key: string]: string }> {
@@ -84,6 +85,74 @@ class WorksClient {
                   reject(error);
             });
         });
+    }
+
+    public async performMobileLogin(username: string, password: string): Promise<[string, { [key: string]: string }]> {
+        try {
+            console.log('username:', username);
+            const mobileUserAgent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1';
+
+            const response = await fetch(this.loginEndpoint, {
+                method: 'GET',
+                headers: {
+                  'User-Agent': mobileUserAgent,
+                  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                  'Accept-Language': 'ja-JP,ja;q=0.9,en-US;q=0.8,en;q=0.7',
+                },
+                redirect: 'follow'
+            });
+    
+            const html = await response.text();
+            console.log('Html:', html);
+    
+            return new Promise((resolve, reject) => {
+                try {
+                    const dom = new jsdom.JSDOM(html, {
+                        url: response.url,
+                        referrer: this.loginEndpoint,
+                        contentType: 'text/html',
+                        userAgent: mobileUserAgent,
+                        pretendToBeVisual: true,
+                        runScripts: 'dangerously',
+                        resources: 'usable',
+                    });
+
+                    const document = dom.window.document;
+
+                    const form = document.querySelector('form');
+                    const usernameInput = document.querySelector('input[name="username"]') as HTMLInputElement;
+
+                    if (!form || !usernameInput) {
+                        throw new Error('Required form element not found.');
+                    }
+
+                    const formData = {
+                        username: username,
+                        formAction: form.action || response.url
+                    };
+
+                    const hiddenInputs = form.querySelectorAll('input[type="hidden"]');
+                    hiddenInputs.forEach((input: HTMLInputElement) => {
+                        if (input.name && input.value) {
+                            formData[input.name] = input.value;
+                        }
+                    });
+
+                    console.log('Form action:', formData.formAction);
+                    console.log('Collected form data:', formData);
+
+                    resolve(formData);
+
+                } catch (error) {
+                    console.error('JSDOM processing error:', error);
+                    reject(error);
+                }
+            });
+
+        } catch (error) {
+            console.error('Login request error:', error);
+            throw error;
+        }
     }
 
     public doPunchIn(username: string, password: string, date?: string): Promise<string> {

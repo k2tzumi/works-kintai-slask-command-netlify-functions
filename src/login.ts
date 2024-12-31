@@ -19,7 +19,7 @@ export async function handler(event: APIGatewayProxyEvent, context: Context) {
   }
 
   try {
-    await client.doPreLogin(postJson.username, postJson.password);
+    await client.performMobileLogin(postJson.username, postJson.password);
 
     return {
       statusCode: 200,
