@@ -125,7 +125,7 @@ module.exports = {
   },
   optimization: {
     nodeEnv: process.env.NODE_ENV || 'production',
-    minimize: false
+    minimize: process.env.NODE_ENV === 'production'
   },
   stats: {
     colors: true,
@@ -147,7 +147,14 @@ module.exports = {
     {
       module: /node_modules\/query-string/,
       message: /export.*was not found/
-    }
+    },
+    {
+      module: /\/node_modules\/@napi-rs\/canvas\/.*\.node$/
+    },
+    {
+      module: /\/node_modules\/@napi-rs\/canvas\/js-binding\.js$/,
+      message: /Can't resolve.*/
+    },
   ],
   infrastructureLogging: {
     level: 'warn',
@@ -155,10 +162,10 @@ module.exports = {
   },
   externals: [
     function(context, request, callback) {
-      if (/@napi-rs\/skia\..*/.test(request)) {
+      if (/@napi-rs\/canvas\/skia\..*/.test(request)) {
         return callback(null, 'commonjs ' + request);
       }
-      if (/@napi-rs\/canvas-.*$/.test(request)) {
+      if (/@napi-rs\/canvas.*$/.test(request)) {
         return callback(null, 'commonjs ' + request);
       }
       callback();
