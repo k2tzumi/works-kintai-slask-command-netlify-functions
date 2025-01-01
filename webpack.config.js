@@ -18,10 +18,11 @@ module.exports = {
       https: require.resolve('https-browserify'),
       assert: require.resolve('assert/'),
       crypto: require.resolve('crypto-browserify'),
+      canvas: process.env.BROWSER ? 'canvas-browser-shim' : '@napi-rs/canvas',
+      'node-canvas': '@napi-rs/canvas',
       punycode: false,
       bufferutil: false,
       'utf-8-validate': false,
-      canvas: false
     },
     alias: {
       'parse5': path.resolve(__dirname, 'node_modules/parse5/dist/cjs/index.js')
@@ -73,8 +74,17 @@ module.exports = {
       {
         test: /\.wasm$/,
         type: 'asset/resource'
+      },
+      {
+        test: /\.node$/,
+        use: 'node-loader',
+        exclude: /@napi-rs\/canvas-.*\.node$/
       }
     ],
+    noParse: [
+      /@napi-rs\/skia\..*\.node$/,
+      /@napi-rs\/canvas-.*\.node$/
+    ]
   },
   experiments: {
     asyncWebAssembly: true,
@@ -142,5 +152,16 @@ module.exports = {
   infrastructureLogging: {
     level: 'warn',
     debug: /webpack/
-  }
+  },
+  externals: [
+    function(context, request, callback) {
+      if (/@napi-rs\/skia\..*/.test(request)) {
+        return callback(null, 'commonjs ' + request);
+      }
+      if (/@napi-rs\/canvas-.*$/.test(request)) {
+        return callback(null, 'commonjs ' + request);
+      }
+      callback();
+    }
+  ]
 };
