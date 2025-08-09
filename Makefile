@@ -49,7 +49,7 @@ build:
 .PHONY: serve
 serve: ## Run Server
 serve:
-	npm run serve
+	npm run start
 
 .PHONY: upgrade
 upgrade: ## Upgrades package.json

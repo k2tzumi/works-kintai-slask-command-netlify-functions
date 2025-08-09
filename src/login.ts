@@ -19,7 +19,7 @@ export async function handler(event: APIGatewayProxyEvent, context: Context) {
   }
 
   try {
-    await client.doPreLogin(postJson.username, postJson.password);
+    await client.performMobileLogin(postJson.username, postJson.password);
 
     return {
       statusCode: 200,
@@ -29,6 +29,12 @@ export async function handler(event: APIGatewayProxyEvent, context: Context) {
       body: JSON.stringify({ ok: true }),
     }
   } catch (error) {
+    if (error instanceof Error) {
+      console.error("handler error message:", error.message);
+      console.error("stack trace:", error.stack);
+    } else { 
+      console.error("unknown error:", error);
+    }
     let statusCode: number;
     switch (true) {
       case error instanceof WorksClientError:

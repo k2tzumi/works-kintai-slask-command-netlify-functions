@@ -5,30 +5,46 @@
   "repository": "https://github.com/k2tzumi/works-kintai-slask-command-netlify-functions",
   "author": "k2tzumi",
   "license": "MIT",
+  "type": "module",
   "scripts": {
-    "build": "netlify-lambda build src/",
-    "serve": "netlify-lambda serve src/ --config ./webpack.functions.js",
-    "lint": "tslint --fix src/**/*.ts"
+    "build": "webpack --config ./webpack.config.js",
+    "start": "netlify dev",
+    "lint": "eslint --fix 'src/**/*.{js,ts}'",
+    "clean": "rm -rf .netlify .functions"
   },
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=22"
   },
   "dependencies": {
-    "axios": "^0.21.4",
-    "axios-cookiejar-support": "^1.0.1",
-    "query-string": "^7.0.1",
-    "tough-cookie": "^4.0.0"
+    "@netlify/functions": "^4.2.1",
+    "axios": "^1.11.0",
+    "axios-cookiejar-support": "^6.0.4",
+    "bufferutil": "^4.0.9",
+    "jsdom": "^26.1.0",
+    "query-string": "^9.2.2",
+    "tough-cookie": "^5.1.2",
+    "utf-8-validate": "^6.0.5"
   },
   "devDependencies": {
-    "@babel/preset-typescript": "^7.15.0",
-    "@types/aws-lambda": "^8.10.83",
-    "@types/node": "^16.9.1",
+    "@babel/core": "^7.28.0",
+    "@babel/plugin-proposal-class-properties": "^7.18.6",
+    "@babel/plugin-proposal-nullish-coalescing-operator": "^7.18.6",
+    "@babel/plugin-proposal-optional-chaining": "^7.21.0",
+    "@babel/preset-env": "^7.28.0",
+    "@babel/preset-typescript": "^7.27.1",
+    "@types/aws-lambda": "^8.10.152",
+    "@types/jsdom": "^21.1.7",
+    "@types/node": "^24.2.1",
     "@types/query-string": "^6.3.0",
-    "dotenv-webpack": "^7.0.3",
-    "netlify-lambda": "^2.0.16",
+    "babel-loader": "^10.0.0",
+    "core-js": "^3.45.0",
+    "dotenv-webpack": "^8.1.1",
+    "netlify-cli": "^23.1.3",
+    "tslint": "^6.1.3",
     "tslint-config-prettier": "^1.18.0",
     "tslint-plugin-prettier": "^2.3.0",
-    "typescript": "^4.4.3",
-    "tslint": "^6.1.3"
+    "typescript": "^5.9.2",
+    "webpack": "^5.101.0",
+    "webpack-cli": "^6.0.1"
   }
 }
