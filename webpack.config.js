@@ -73,6 +73,21 @@ export default {
     }),
     new webpack.IgnorePlugin({
       checkResource(resource, context) {
+        const optionalDeps = [
+          'bufferutil',
+          'utf-8-validate', 
+          'canvas'
+        ];
+        
+        if (resource.endsWith('.node') || resource.includes('canvas')) {
+          return true;
+        }
+        
+        return optionalDeps.some(dep => resource === dep || resource.includes(dep));
+      }
+    }),
+    new webpack.IgnorePlugin({
+      checkResource(resource, context) {
 
         if (resource.includes('axios/lib/') && !resource.includes('axios/unsafe/')) {
           return true;
@@ -102,7 +117,9 @@ export default {
   externals: [
     '@netlify/functions',
     'fs', 'path', 'crypto', 'http', 'https', 'url', 'querystring',
-    // 'axios'
+    'bufferutil',
+    'utf-8-validate',
+    'canvas'
   ],
   
   bail: true,
